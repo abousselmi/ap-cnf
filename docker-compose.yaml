@@ -22,6 +22,8 @@ services:
                     - hostapd
         cap_add:
             - NET_ADMIN
+        depends_on:
+            - dhcpd
 
     dhcpd:
         container_name: dhcpd
@@ -36,5 +38,3 @@ services:
             apnet:
                 aliases: 
                     - dhcpd
-        depends_on:
-            - hostapd
