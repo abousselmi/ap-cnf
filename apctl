@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# author: abousselmi
+
+set -e
+ 
+if [ "$EUID" -ne 0 ] ; then
+    echo "Please run as root"
+    exit 1
+fi
+
+source ./ap.env
+HOSTAPD_CONTAINER_NAME=hostapd
+
+# logger
+function log {
+    echo -e "$(date +%F-%T) | $(hostname) | INFO | $1"
+}
+
+function hostapd_start {
+    log "docker compose build"
+    docker-compose build -q
+
+    log "docker compose up"
+    docker-compose up -d
+
+    log "move $WLAN_NAME to $HOSTAPD_CONTAINER_NAME network namespace"
+    CID="$(docker inspect -f '{{.State.Pid}}' $HOSTAPD_CONTAINER_NAME)"
+    PHY="$(cat /sys/class/net/"$WLAN_NAME"/phy80211/name)"
+    iw phy $PHY set netns $CID
+
+    log "start hostapd service"
+    docker exec -it $HOSTAPD_CONTAINER_NAME apstart
+
+    log "done"
+}
+
+function hostapd_stop {
+    docker-compose --log-level ERROR down
+    log "done"
+}
+
+if [ "$1" = "start" ]; then
+    log "start access point stack"
+    hostapd_start
+elif [ "$1" = "stop" ]; then
+    log "stop access point stack"
+    hostapd_stop
+else
+    echo "This is a wrapper script to start/stop the access point stack"
+    echo ""
+    echo "  Usage: $0 <start|stop>"
+    echo ""
+fi
