@@ -1,0 +1,40 @@
+version: '3.8'
+
+networks:
+    apnet:
+        ipam:
+            driver: default
+            config:
+                - subnet: 10.10.10.0/24
+
+services:
+    hostapd:
+        container_name: hostapd
+        build:
+            context: ./nf_hostapd
+        volumes:
+            - "./nf_hostapd/apstart:/usr/bin/apstart"
+        env_file:
+            - "./ap.env"
+        networks:
+            apnet:
+                aliases:
+                    - hostapd
+        cap_add:
+            - NET_ADMIN
+
+    dhcpd:
+        container_name: dhcpd
+        build: 
+            context: ./nf_dhcpd
+        volumes:
+            - "./nf_dhcpd/dhcpd.conf:/etc/dhcp/dhcpd.conf"
+        expose:
+            - "67/tcp"
+            - "67/udp"
+        networks:
+            apnet:
+                aliases: 
+                    - dhcpd
+        depends_on:
+            - hostapd
