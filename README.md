@@ -23,7 +23,7 @@ $ sudo ./apctl start
 
 - [x] Create two different containers for hostapd and dhcp
 - [x] Use default docker networking
-- [x] Use of screen to be able to access hostapd log
+- [x] Use screen to be able to access hostapd log
 - [ ] Make dhcpd configuration dynamic
 
 
