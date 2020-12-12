@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -e
+
+# logger
+function log {
+    echo -e "$(date +%F-%T) | $(hostname) | INFO | $1"
+}
+
+echo "starting.."
+echo "    __  __           __                  __"
+echo "   / / / /___  _____/ /_____ _____  ____/ /"
+echo "  / /_/ / __ \/ ___/ __/ __ '/ __ \/ __  / "
+echo " / __  / /_/ (__  ) /_/ /_/ / /_/ / /_/ /  "
+echo "/_/ /_/\____/____/\__/\__._/ .___/\__ _/   "
+echo "                          /_/              "
+echo "IEEE 802.11 AP"
+echo "IEEE 802.1X/WPA/WPA2/EAP/RADIUS Authenticator"
+echo "User space daemon for AP and AAA servers"
+echo ""
+
+log "create hostapd config file: /etc/hostapd/hostapd.conf"
+cat > /etc/hostapd/hostapd.conf << EOF
+# the interface used by the AP
+interface=$WLAN_NAME
+# "g" simply means 2.4GHz band
+hw_mode=g
+# the channel to use
+channel=10
+# limit the frequencies used to those allowed in the country
+ieee80211d=1
+# the country code
+country_code=FR
+# 802.11n support
+ieee80211n=1
+# QoS support, also required for full speed on 802.11n/ac/ax
+wmm_enabled=1
+
+# the name of the AP
+ssid=$WIFI_SSID
+# 1=wpa, 2=wep, 3=both
+auth_algs=1
+# WPA2 only
+wpa=2
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+wpa_passphrase=$WIFI_PW
+EOF
+
+log "update hostapd config file path in: /etc/default/hostapd"
+mkdir -p /etc/default/
+cat > /etc/default/hostapd << EOF
+RUN_DAEMON=no
+DAEMON_CONF=/etc/hostapd/hostapd.conf
+EOF
+
+log "setup wlan interface: $WLAN_NAME"
+ip addr flush dev $WLAN_NAME
+ip link set $WLAN_NAME up
+
+log "start hostadp in a detached screen mode"
+screen -S apscreen -d -m service hostapd start
+
+log "wait 10s for hostapd to start"
+sleep 10
+
+log "add $WLAN_NAME and eth0 to br0"
+ip link add br0 type bridge
+ip link set br0 up
+ip link set dev $WLAN_NAME master br0
+ip link set dev eth0 master br0
+
+log "wifi ssid: $WIFI_SSID"
+log "wifi passphrase: $WIFI_PW"
