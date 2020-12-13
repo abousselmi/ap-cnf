@@ -69,7 +69,7 @@ sleep 10
 
 log "add $WLAN_NAME and eth0 to master bridge $BR"
 ETH0_IP="$(ip addr show eth0 | awk '/inet/ {print $2}')"
-GW_IP="ip route | awk '/default/ {print $3}'"
+GW_IP="$(ip route | awk '/default/ {print $3}')"
 ip link add $BR type bridge
 ip link set $BR up
 ip addr del $ETH0_IP dev eth0
